@@ -53,7 +53,7 @@ module XSendFile
       raise ActionController::MissingFile, "Cannot read file #{path}" unless File.file?(path) and File.readable?(path)
 
       # pull in default values for options
-      options = Plugin.options.merge(options)
+      options.reverse_merge!(Plugin.options)
       options[:length]   ||= File.size(path)
       options[:filename] ||= File.basename(path) unless options[:url_base_filename]
   
@@ -63,5 +63,7 @@ module XSendFile
       logger.info "Sending XSendFile header for #{path}" unless logger.nil?
       render options[:render]
     end
+    
+    alias_method :send_file_with_x_send_file, :x_send_file
   end
 end

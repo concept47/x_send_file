@@ -30,8 +30,9 @@ module XSendFile
     cattr_accessor :options
     
     # Replaces Rails' built-in send_file method with x_send_file.  Use with caution!
+    # The normal send_file method can still be accessed using send_file_without_xsendfile.
     def self.replace_send_file!
-      ActionController::Base.send(:alias_method, :send_file, :x_send_file)
+      ActionController::Base.send(:alias_method_chain, :send_file, :x_send_file)
     end
   end
 end

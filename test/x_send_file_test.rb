@@ -25,6 +25,8 @@ require "#{File.dirname(__FILE__)}/../../../../config/environment.rb"
 
 require 'action_controller/test_process'
 require 'test/unit'
+require 'rubygems'
+require 'mocha'
 
 class XSendFileController < ActionController::Base
   attr_accessor :path, :options
@@ -66,8 +68,9 @@ class XSendFileTest < Test::Unit::TestCase
   # Make sure we get back an X-Sendfile header, and the value is key correctly
   def test_x_send_file_header
     get :file
+    assert_response :success, 'Expected successful response'
     assert @response.headers.include?('X-Sendfile'), 'X-Sendfile header expected'
-    assert_equal @response.headers['X-Sendfile'], @controller.path, 'X-Sendfile header value not as expected'
+    assert_equal @controller.path, @response.headers['X-Sendfile'], 'X-Sendfile header value not as expected'
   end
   
   # Test setting a custom header in the x_send_file method call
@@ -75,6 +78,7 @@ class XSendFileTest < Test::Unit::TestCase
     custom_header = 'X-Custom-Method-Header'    
     @controller.options = { :header => custom_header }
     get :file
+    assert_response :success, 'Expected successful response'
     assert @response.headers.include?(custom_header), 'Custom header expected when passed to method'
   end
 
@@ -83,12 +87,21 @@ class XSendFileTest < Test::Unit::TestCase
     custom_header = 'X-Custom-Global-Header'
     XSendFile::Plugin.options[:header] = custom_header
     get :file
+    assert_response :success, 'Expected successful response'
     assert @response.headers.include?(custom_header), 'Custom header expected when set as global option'
   end
   
   # Make sure a missing file raises an exception
   def test_missing_file_exception
-    @controller.path += '.missing'
+    File.expects(:file?).with(@controller.path).returns(false)
+    assert_raises(ActionController::MissingFile) do
+      get :file
+    end
+  end
+  
+  # Make sure an unreadable file raises an exception
+  def test_unreadable_file_exception
+    File.expects(:readable?).with(@controller.path).returns(false)
     assert_raises(ActionController::MissingFile) do
       get :file
     end
@@ -98,6 +111,7 @@ class XSendFileTest < Test::Unit::TestCase
   def test_replace_send_file
     # make sure we don't pre-emptively replace send_file
     get :sendfile
+    assert_response :success, 'Expected successful response'
     assert !@response.headers.include?('X-Sendfile'), 'Unexpected replacement of send_file'
     
     # prepare for request #2...
@@ -106,6 +120,7 @@ class XSendFileTest < Test::Unit::TestCase
     # replace send_file
     XSendFile::Plugin.replace_send_file!
     get :sendfile
+    assert_response :success, 'Expected successful response'
     assert @response.headers.include?('X-Sendfile'), 'Expected X-Sendfile header'
   end
 end
